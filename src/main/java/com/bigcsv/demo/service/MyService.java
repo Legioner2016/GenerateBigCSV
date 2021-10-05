@@ -1,0 +1,68 @@
+package com.bigcsv.demo.service;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.bigcsv.demo.entity.MyTestEntity;
+import com.bigcsv.demo.repository.MyTestEntityRepository;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@Slf4j
+public class MyService {
+	
+	private final static String[] RESULT_HEADERS = {"id", "idOwner", "title", "data1", "data2"};
+	
+	@Autowired
+	private MyTestEntityRepository repository;
+	
+	@Transactional(readOnly = true)
+	public Stream<MyTestEntity> getAllForOwner(int idOwner) {
+		return repository.findAllByOwnerId(idOwner);
+	}
+	
+	@Transactional(readOnly = true)
+	public void streamAll(final OutputStream outputStream, Integer ownerId) {
+	  try {
+	    final Stream<MyTestEntity> stream = repository.findAllByOwnerId(ownerId);
+	    
+	    byte[] buff = (Stream.of(RESULT_HEADERS)
+	    		.map(this::prepareObjectToCsv).collect(Collectors.joining(",")) + "\n")
+	    		.getBytes(StandardCharsets.UTF_8);
+	    outputStream.write(buff);
+		
+        stream.forEach(entity -> {
+       	   String test = entity.getId() + "," +  entity.getOwnerId() + "," 
+       			   	+ prepareObjectToCsv(entity.getString1()) + "," + entity.getInt1() + "," +
+       			   	prepareObjectToCsv(entity.getNumeric1()) + "\n";
+       	   byte[] b = test.getBytes(StandardCharsets.UTF_8);
+       	   try {
+			outputStream.write(b);
+ 		  } catch (IOException e) {
+			log.error(e.getMessage(), e);
+		  }
+        });
+		
+
+	    
+	    //objectMapper.writeValue(outputStream, stream);
+	  } catch (Exception e) {
+	    log.error(e.getMessage(), e);
+	  }
+	}
+	
+	private String prepareObjectToCsv(Object object) {
+			String value = String.valueOf(object);
+			boolean quoted = value.contains(",") || value.contains("\"");
+			value = value.replaceAll("\"", "\"\"");
+			return quoted ? "\"" + value + "\"" : value;  
+	} 
+	
+}
