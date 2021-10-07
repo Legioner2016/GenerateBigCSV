@@ -30,5 +30,18 @@ public class Controller {
 
         return new ResponseEntity<StreamingResponseBody>(outputStream -> service.streamAll(outputStream, ownerId), HttpStatus.OK);
 	}
+	
+	@GetMapping("/streamzip")
+	public ResponseEntity<StreamingResponseBody> streamAllZip(
+			@RequestParam(name = "ownerId", required = true) Integer ownerId,
+				final HttpServletResponse response) {
+        response.setContentType("application/zip");
+        response.setHeader(
+                "Content-Disposition",
+                "attachment;filename=samples.zip");
+
+        return new ResponseEntity<StreamingResponseBody>(outputStream -> service.streamAllZip(outputStream, ownerId), HttpStatus.OK);
+	}
+	
 
 }
